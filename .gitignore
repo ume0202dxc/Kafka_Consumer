@@ -1,0 +1,10 @@
+.project
+/build/
+**/logs/
+**/*.class
+**/*.war
+**/*.jar
+/target/
+.classpath
+.factorypath
+.settings/

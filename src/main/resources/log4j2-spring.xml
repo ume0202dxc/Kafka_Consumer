@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<Configuration packages="com.microsoft.applicationinsights.log4j.v2">
+
+  <Appenders>
+     <Console name="STDOUT" target="SYSTEM_OUT">
+     <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %X{Kafka_UID} - %replace{%msg}{[\r\n]+}{}%xThrowable{separator(|)}%n" /> 
+    </Console>
+
+    <RollingFile name="KafkaConsumerLogFile"
+                 fileName="${bundle:application:logging.path:-home/kafka/logs}/kafka_consumer.log"
+                 filePattern="${bundle:application:logging.path:-home/kafka/logs}/kafka_consumer-%d{yyyyMMdd}-%i.log.gz"
+                 append="true">
+      <PatternLayout>
+         <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %X{Kafka_UID} - %replace{%msg}{[\r\n]+}{}%xThrowable{separator(|)}%n</Pattern> 
+      </PatternLayout>
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="500 MB" />
+      </Policies>
+      <DefaultRolloverStrategy max="20"/>
+    </RollingFile>
+
+    <Routing name="RoutingAppender">
+      <Routes pattern="${ctx:LogFileName}">
+        <Route>
+          <RollingFile name="Rolling-${ctx:LogFileName}"
+                       fileName="${bundle:application:logging.path:-home/consumer/logs}/${ctx:LogFileName}.log"
+                       filePattern="${bundle:application:logging.path:-home/consumer/logs}/${ctx:LogFileName}-%d{yyyyMMdd}-%i.log.gz"
+                       append="true">
+            <PatternLayout>
+              <Pattern>%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %X{Kafka_UID} - %replace{%msg}{[\r\n]+}{}%xThrowable{separator(|)}%n</Pattern>
+            </PatternLayout>
+            <Policies>
+              <OnStartupTriggeringPolicy />
+              <SizeBasedTriggeringPolicy size="500 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+          </RollingFile>
+        </Route>
+        <Route key="${ctx:LogFileName}" ref="KafkaConsumerLogFile" />
+      </Routes>
+    </Routing>
+    
+     <ApplicationInsightsAppender name="aiAppender" instrumentationKey="${env:InstrumentationKey}" />
+  </Appenders>
+
+  <Loggers>
+    <logger name="org.springframework.jms" additivity="false">
+      <level value="debug" />
+      <appender-ref ref="KafkaConsumerLogFile" />
+      <appender-ref ref="STDOUT" />
+    </logger>
+   
+    <Root level="info">
+      <appender-ref ref="RoutingAppender" />
+      <appender-ref ref="aiAppender"/>
+      <appender-ref ref="STDOUT" />
+    </Root>
+
+  </Loggers>
+  
+  
+</Configuration>

@@ -1,0 +1,151 @@
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+    exclude: offset
+info:
+  tags:
+    environment: ${env}
+spring:
+  profile:
+    active: ${spring.profile.active}
+  application:
+    name: Kafka Consumer - ${env}
+  jmx:
+    enabled: true
+  boot:
+    admin:
+      client:
+        url: http://localhost:8081
+        instance:
+          metadata:
+            tags:
+              environment: ${env}
+  security:
+    user:
+      name: ${user}
+      password: ${password}
+  main:
+    banner-mode: 'off'
+    allow-bean-definition-overriding: true
+  info:
+    git:
+      location: classpath:git.properties
+  debug: true
+
+---
+spring:
+  profiles: SP
+       
+  kafka:
+    properties:
+      sasl:
+       login:
+         callback:
+          handler:
+            class: com.kafka.security.azure.ServicePrincipalAuthCallback
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure.include: "*"
+      exposure.exclude: offset
+  server:
+    port: 8081
+
+################ Log4j properties ######################################
+
+debug: false
+trace: false
+
+logging:
+  level:
+    com.kafka.consumer: DEBUG
+    org.springframework: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+    file: "%d %p %c{1.} [%t] %m%n"
+  file: kafka_consumer.log
+            
+---
+spring:
+  profiles: primary
+
+  kafka:
+    bootstrap-servers: ${bootstrap-servers}
+    properties:
+      security:
+        protocol: SASL_SSL
+      sasl:
+        mechanism: OAUTHBEARER
+        login:
+         callback:
+          handler:
+            class: com.kafka.security.azure.ServicePrincipalAuthCallback
+     
+        jaas:
+          config: org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+       
+    consumer:          
+      enable-auto-commit: ${enable-auto-commit}
+      auto-offset-reset: ${auto-offset-reset}
+      topics: ${topics}
+      concurrency: ${concurrency}
+      groupId: ${groupId}
+      containerFactory: kafkaListenerContainerFactory
+      retry: ${retry}
+      isolation: 
+        level: ${isolation.level}
+      properties:
+        max.poll.records: ${max.poll.records}
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.RoundRobinAssignor
+        #spring.json.trusted.packages: "*"
+    
+    listener:
+      type: single
+      ack-mode: batch
+
+
+
+---
+spring:
+  profiles: secondary
+
+  kafka:
+    bootstrap-servers: ${bootstrap-servers}
+    properties:
+      security:
+        protocol: SASL_SSL
+      sasl:
+        mechanism: OAUTHBEARER
+        login:
+         callback:
+          handler:
+            class: com.kafka.security.azure.ServicePrincipalAuthCallback
+     
+        jaas:
+          config: org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;
+       
+    consumer:          
+      enable-auto-commit: ${enable-auto-commit}
+      auto-offset-reset: ${auto-offset-reset}
+      topics: ${topics}
+      concurrency: ${concurrency}
+      groupId: ${groupId}
+      containerFactory: kafkaListenerContainerFactory
+      retry: ${retry}
+      isolation: 
+        level: ${isolation.level}
+      properties:
+        max.poll.records: ${max.poll.records}
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.RoundRobinAssignor
+        #spring.json.trusted.packages: "*"
+    
+    listener:
+      type: single
+      ack-mode: batch
+             
